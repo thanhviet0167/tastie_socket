@@ -70,14 +70,26 @@ const eventOrder = (io) => {
           order_code,
           pricing
         );
-        socket.broadcast.emit(
-          "shipper-received-order",
-          orderData,
-          customerData,
-          providerData,
-          order_code,
-          pricing
-        );
+        if (pricing.deliveryMode === 1) {
+          // delivery or pickup
+          socket.broadcast.emit(
+            "shipper-received-order",
+            orderData,
+            customerData,
+            providerData,
+            order_code,
+            pricing
+          );
+        } else {
+          socket.broadcast.to(`provider-${providerData.provider_id}`).emit(
+            "provider-received-order",
+            orderData,
+            customerData,
+            order_code,
+            pricing.providerNotificationForm ?? {} // providerNotificationForm
+          );
+        }
+
         // server announce to provider
         // socket.broadcast
         //   .to(`provider-${providerData.provider_id}`)
@@ -152,11 +164,11 @@ const eventOrder = (io) => {
 
     socket.on("customer-inbox", (message, room) => {
       console.log("customer: " + message + " to room " + room);
-      socket.broadcast.to(room).emit("receive-customer-inbox", message);
+      socket.broadcast.to(room).emit("receive-customer-inbox", message, room);
     });
     socket.on("shipper-inbox", (message, room) => {
       console.log("shipper: " + message + " to room " + room);
-      socket.broadcast.to(room).emit("receive-shipper-inbox", message);
+      socket.broadcast.to(room).emit("receive-shipper-inbox", message, room);
     });
 
     // socket.on('shipper-done-shipping', () => {
